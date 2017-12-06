@@ -167,38 +167,42 @@ LONG WINAPI ExceptionFilter(struct _EXCEPTION_POINTERS *ExceptionInfo)
 }
 
 /* entrypoint shit */
-BOOL WINAPI DllMain(HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) {
-	switch (ul_reason_for_call) 
+BOOL WINAPI DllMain(HINSTANCE dll_instance, DWORD reason_for_call, void *reserved) {
+	switch (reason_for_call) 
 	{
 		case DLL_PROCESS_ATTACH:
-		{
-			g_Globals::hmDLL = (HMODULE)hModule;
+			g_Globals::hmDLL = (HINSTANCE)dll_instance;
 
 			/* unhandled exception */
 			SetUnhandledExceptionFilter(ExceptionFilter);
 
 			/* setup console */
-			AllocConsole();
-			freopen("CONIN$", "r", stdin);
-			freopen("CONOUT$", "w", stdout);
-			freopen("CONOUT$", "w", stderr);
+                        if (AllocConsole())
+			{
+                            freopen_s((FILE**) stdin, "CONIN$", "r", stdin);
+                            freopen_s((FILE**) stdout, "CONOUT$", "w", stdout);
+                            freopen_s((FILE**) stdout, "CONOUT$", "w", stderr);
+                        }
 
 			SetConsoleTitleA(CHEAT_NAME);
 
 			/* woop woop lets hack gamers */
-			CreateThread(0, 0, (LPTHREAD_START_ROUTINE)CheatThread, 0, 0, 0);
+			CreateThread(nullptr, 0, LPTHREAD_START_ROUTINE(CheatThread), dll_instance, 0, nullptr);
 			
-		}break;
+			return true;
+			break;
+			
+		default:
+	            return false;
+	            break;
 	}
-
-	return TRUE;
 }
 
 /* actual thread*/
 void CheatThread()
 {
 	/* find window for wndproc hook etc */
-	while (!(g_Globals::hwndWindow = FindWindowA("Valve001", NULL)))
+	while (!(g_Globals::hwndWindow = FindWindowA("Valve001", 0)))
 		std::this_thread::sleep_for(50ms);
 
 	/* this is for all the p100 uffja1tap p2c loaders that require you to */ 
