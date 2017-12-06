@@ -167,30 +167,30 @@ LONG WINAPI ExceptionFilter(struct _EXCEPTION_POINTERS *ExceptionInfo)
 }
 
 /* entrypoint shit */
-BOOL WINAPI DllMain(HINSTANCE dll_instance, DWORD reason_for_call, void *reserved) {
+bool __stdcall DllMain(HINSTANCE dll_instance, unsigned long reason_for_call, void *reserved) {
 	switch (reason_for_call) 
 	{
 		case DLL_PROCESS_ATTACH:
-			g_Globals::hmDLL = (HINSTANCE)dll_instance;
+		    g_Globals::hmDLL = (HINSTANCE)dll_instance;
 
-			/* unhandled exception */
-			SetUnhandledExceptionFilter(ExceptionFilter);
+		    /* unhandled exception */
+		    SetUnhandledExceptionFilter(ExceptionFilter);
 
-			/* setup console */
-                        if (AllocConsole())
-			{
-                            freopen_s((FILE**) stdin, "CONIN$", "r", stdin);
-                            freopen_s((FILE**) stdout, "CONOUT$", "w", stdout);
-                            freopen_s((FILE**) stdout, "CONOUT$", "w", stderr);
-                        }
+		    /* setup console */
+                    if (AllocConsole())
+		    {
+                        freopen_s((FILE**) stdin, "CONIN$", "r", stdin);
+                        freopen_s((FILE**) stdout, "CONOUT$", "w", stdout);
+                        freopen_s((FILE**) stdout, "CONOUT$", "w", stderr);
+                    }
 
-			SetConsoleTitleA(CHEAT_NAME);
+		    SetConsoleTitleA(CHEAT_NAME);
 
-			/* woop woop lets hack gamers */
-			CreateThread(nullptr, 0, LPTHREAD_START_ROUTINE(CheatThread), dll_instance, 0, nullptr);
+		    /* woop woop lets hack gamers */
+		    CreateThread(nullptr, 0, LPTHREAD_START_ROUTINE(CheatThread), dll_instance, 0, nullptr);
 			
-			return true;
-			break;
+		    return true;
+		    break;
 			
 		default:
 	            return false;
@@ -199,7 +199,7 @@ BOOL WINAPI DllMain(HINSTANCE dll_instance, DWORD reason_for_call, void *reserve
 }
 
 /* actual thread*/
-void CheatThread()
+void CheatThread(void *instance)
 {
 	/* find window for wndproc hook etc */
 	while (!(g_Globals::hwndWindow = FindWindowA("Valve001", 0)))
