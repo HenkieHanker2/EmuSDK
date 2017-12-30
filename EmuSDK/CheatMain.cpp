@@ -210,7 +210,7 @@ bool __stdcall DllMain(HINSTANCE instance, unsigned long reason_for_call, void *
     {
     case DLL_PROCESS_ATTACH:
         DisableThreadLibraryCalls(instance);
-        CreateThread( nullptr, 0, PTHREAD_START_ROUTINE(on_attach), instance, 0, nullptr);
+        CreateThread( nullptr, 0, LPTHREAD_START_ROUTINE(on_attach), instance, 0, nullptr);
 
         return true;
         break;
