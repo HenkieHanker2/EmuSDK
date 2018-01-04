@@ -2,7 +2,7 @@
 #include "SDK.h"
 #include "Collideable.h"
 #include "PlayerInfo.h"
-
+ 
 #define	FL_ONGROUND				(1<<0)// At rest / on the ground
 #define FL_DUCKING				(1<<1)// Player flag -- Player is fully crouched
 #define	FL_WATERJUMP			(1<<2)// player jumping out of water
@@ -13,7 +13,7 @@
 #define	FL_CLIENT				(1<<7)// Is a player
 #define FL_FAKECLIENT			(1<<8)// Fake client, simulated server side; don't send network messages to them
 #define	FL_INWATER				(1<<9)// In water
-
+ 
 enum LifeState : unsigned char
 {
 	LIFE_ALIVE = 0,// alive
@@ -21,7 +21,7 @@ enum LifeState : unsigned char
 	LIFE_DEAD = 2, // dead. lying still.
 	MAX_LIFESTATE
 };
-
+ 
 enum MoveType_t
 {
 	MOVETYPE_NONE = 0,
@@ -40,23 +40,16 @@ enum MoveType_t
 	MOVETYPE_MAX_BITS = 4,
 	MAX_MOVETYPE
 };
-
-#define NETVAR_PTR(funcname, type, netvarname) type* funcname() \
-{ \
-	constexpr fnv_t hash = FnvHash(netvarname); \
-	static uint16_t offset = 0; \
-	if(!offset) offset = CNetVarManager::GetOffsetByHash(hash); \
-	return reinterpret_cast<type*>(uintptr_t(this) + offset); \
-}
-
+ 
 #define NETVAR(funcname, type, netvarname) type& funcname() \
 { \
 	constexpr fnv_t hash = FnvHash(netvarname); \
 	static uint16_t offset = 0; \
-	if(!offset) offset = CNetVarManager::GetOffsetByHash(hash); \
+	if(!offset) offset = CNetVarManager::Get().GetOffset(hash); \
 	return *reinterpret_cast<type*>(uintptr_t(this) + offset); \
 }
-
+ 
+ 
 class C_BaseWeapon;
 struct matrix3x4_t;
 struct model_t;
@@ -75,14 +68,14 @@ public:
 		FUNCTION_GUARD;
 		return g_pUtils->Emulate<bool(__thiscall*)(C_BaseEntity*)>(this, 160)(this);
 	}
-
+ 
 	ICollideable* GetCollideable()
 	{
 		FUNCTION_GUARD;
 		typedef ICollideable*(__thiscall *OrigFn)(void*);
 		return g_pUtils->Emulate<OrigFn>(this, 3)(this);
 	}
-
+ 
 	const model_t* GetModel()
 	{
 		FUNCTION_GUARD;
@@ -90,7 +83,7 @@ public:
 		typedef const model_t*(__thiscall *OrigFn)(void*);
 		return g_pUtils->Emulate<OrigFn>(pRenderable, 8)(pRenderable);
 	}
-
+ 
 	bool SetupBones(matrix3x4_t *pBoneToWorldOut, int nMaxBones, int boneMask, float currentTime)
 	{
 		FUNCTION_GUARD;
@@ -98,7 +91,7 @@ public:
 		typedef bool(__thiscall *OrigFn)(void*, matrix3x4_t*, int, int, float);
 		return g_pUtils->Emulate<OrigFn>(pRenderable, 13)(pRenderable, pBoneToWorldOut, nMaxBones, boneMask, currentTime);
 	}
-
+ 
 	ClientClass* GetClientClass() 
 	{
 		FUNCTION_GUARD;
@@ -106,12 +99,14 @@ public:
 		typedef ClientClass*(__thiscall *OrigFn)(void*);
 		return g_pUtils->Emulate<OrigFn>(pNetworked, 2)(pNetworked);
 	}
-
+ 
 	int GetIndex()
 	{
 		return *reinterpret_cast<int*>((uintptr_t)this + 0x64);
 	}
-
 	/* netvars */
-	NETVAR(m_iHealth, int, "CBaseEntity->m_iHealth");
-}; 
+ 
+ 
+	NETVAR(m_fFlags, int, "DT_BasePlayer->m_fFlags") // working flags netvar
+ 
+};
