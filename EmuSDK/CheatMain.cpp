@@ -9,8 +9,6 @@ C_BaseWeapon* g_Globals::ptrLocalWeapon = nullptr;
 CUserCmd* g_Globals::ptrCmd = nullptr;
 HWND g_Globals::hwndWindow = NULL;
 
-void CheatThread();
-
 /* exception handling - credits: s0beit */
 LONG WINAPI ExceptionFilter(struct _EXCEPTION_POINTERS *ExceptionInfo)
 {
@@ -166,49 +164,59 @@ LONG WINAPI ExceptionFilter(struct _EXCEPTION_POINTERS *ExceptionInfo)
 	return EXCEPTION_CONTINUE_SEARCH;
 }
 
-/* entrypoint shit */
-bool __stdcall DllMain(HINSTANCE dll_instance, unsigned long reason_for_call, void *reserved) {
-	switch (reason_for_call) 
-	{
-		case DLL_PROCESS_ATTACH:
-		    g_Globals::hmDLL = (HINSTANCE)dll_instance;
+void __stdcall on_attach( HINSTANCE instance ) // initialize stuff here
+{
+    if (AllocConsole())
+    {
+        AttachConsole(GetCurrentProcessId());
+        freopen_s((FILE**)stdin, ("CONIN$"), ("r"), stdin);
+        freopen_s((FILE**)stdout, ("CONOUT$"), ("w"), stdout);
+        freopen_s((FILE**)stdout, ("CONOUT$"), ("w"), stderr);
+        SetConsoleTitleA(CHEAT_NAME);
 
-		    /* unhandled exception */
-		    SetUnhandledExceptionFilter(ExceptionFilter);
+        std::cout << ("console allocated\n") << std::endl;
+    }
 
-		    /* setup console */
-                    if (AllocConsole())
-		    {
-                        freopen_s((FILE**) stdin, "CONIN$", "r", stdin);
-                        freopen_s((FILE**) stdout, "CONOUT$", "w", stdout);
-                        freopen_s((FILE**) stdout, "CONOUT$", "w", stderr);
-                    }
+    /* find window for wndproc hook etc */
+    while ( !( g_Globals::hwndWindow = FindWindowA( "Valve001", 0 ) ) )
+        std::this_thread::sleep_for( 50ms );
 
-		    SetConsoleTitleA(CHEAT_NAME);
+    /* this is for all the p100 uffja1tap p2c loaders that require you to */
+    /* be in the main menu to inject because otherwise clientmode is a nullptr*/
+    g_pUtils->GetHandleSafe( "serverbrowser.dll" );
 
-		    /* woop woop lets hack gamers */
-		    CreateThread(nullptr, 0, LPTHREAD_START_ROUTINE(CheatThread), dll_instance, 0, nullptr);
-			
-		    return true;
-		    break;
-			
-		default:
-	            return false;
-	            break;
-	}
+    /* init our sdk */
+    g_pSDK->Initialize();
+
+    g_Globals::hmDLL = (HINSTANCE)instance;
+
+    /* unhandled exception */
+    SetUnhandledExceptionFilter(ExceptionFilter);
 }
 
-/* actual thread*/
-void CheatThread(void *instance)
+void __stdcall on_detach(HINSTANCE instance)
+{ // shutdown stuff here
+    fclose((FILE*)stdin);
+    fclose((FILE*)stdout);
+    fclose((FILE*)stderr);
+    FreeConsole();
+
+    std::this_thread::sleep_for( 100ms );
+}
+
+bool __stdcall DllMain(HINSTANCE instance, unsigned long reason_for_call, void *reserved)
 {
-	/* find window for wndproc hook etc */
-	while (!(g_Globals::hwndWindow = FindWindowA("Valve001", 0)))
-		std::this_thread::sleep_for(50ms);
+    switch (reason_for_call)
+    {
+    case DLL_PROCESS_ATTACH:
+        DisableThreadLibraryCalls(instance);
+        CreateThread( nullptr, 0, LPTHREAD_START_ROUTINE(on_attach), instance, 0, nullptr);
 
-	/* this is for all the p100 uffja1tap p2c loaders that require you to */ 
-	/* be in the main menu to inject because otherwise clientmode is a nullptr*/
-	g_pUtils->GetHandleSafe("serverbrowser.dll");
+        return true;
+        break;
 
-	/* init our sdk */
-	g_pSDK->Initialize();
+    default:
+        return false;
+        break;
+    }
 }
